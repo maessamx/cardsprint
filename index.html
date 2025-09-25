@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تجميع كروت للطباعة — صنع الشيتات</title>
+  <style>
+    body { font-family: Tajawal, Roboto, sans-serif; direction: rtl; padding: 18px; background:#f5f7fb; color:#111 }
+    h1 { margin: 6px 0 14px; color:#2b2b6b }
+    .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px }
+    input[type=file] { display:block }
+    button { background:#4b39ef; color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer }
+    button.secondary { background:#6b7280 }
+    .preview { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px }
+    .thumb { width:120px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #ddd }
+    .sheet-list { margin-top:18px; display:flex; flex-direction:column; gap:12px }
+    .sheet-item { display:flex; gap:10px; align-items:center; background:#fff; padding:10px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.06) }
+    .sheet-item img { width:180px; height:auto; border-radius:6px; border:1px solid #eee }
+    .small { font-size:13px; color:#444 }
+    .note { font-size:13px; color:#666; margin-top:8px }
+    .progress { margin-left:8px; font-size:13px; color:#333 }
+    .footer { margin-top:18px; color:#666 }
+  </style>
+  <!-- JSZip CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <h1>إنشاء شيتات الطباعة — 10 كروت لكل ورقة</h1>
+
+  <div class="controls">
+    <div>
+      <label class="small">اختر صور الكروت (يمكن اختيار العديد)</label><br>
+      <input id="files" type="file" accept="image/*" multiple />
+    </div>
+
+    <div>
+      <label class="small">DPI (لطباعة أفضل)</label><br>
+      <input id="dpi" type="number" value="300" style="width:100px" />
+    </div>
+
+    <div>
+      <label class="small">تحجيم الكارت (سم)</label><br>
+      <input id="cardW" type="number" value="9" step="0.1" style="width:72px" /> ×
+      <input id="cardH" type="number" value="5.5" step="0.1" style="width:72px" />
+      <div class="small" style="margin-top:4px">عرض × ارتفاع (سم)</div>
+    </div>
+
+    <div style="align-self:flex-end">
+      <button id="make">إنشاء الشيتات</button>
+      <button id="downloadAll" class="secondary" disabled>تحميل كل الشيتات ZIP</button>
+    </div>
+  </div>
+
+  <div class="note">التخطيط: 2 عمود × 5 صفوف = 10 كروت لكل صفحة. يمكنك تعديل مقاسات الكارت أو DPI حسب طابعةك.</div>
+
+  <div id="previewArea" class="preview"></div>
+
+  <div id="sheetArea" class="sheet-list"></div>
+
+  <div class="footer">
+    <div class="small">ملاحظة: إنشاء صور بدقة عالية يمكن أن يستهلك ذاكرة كبيرة في المتصفح. لو كانت عدد الصور كبير جداً قد تحتاج تقسيمها على دفعات.</div>
+  </div>
+
+<script>
+/*
+  خطوات العمل:
+  1. اقرأ ملفات الصور من input
+  2. ارسم كل شيت على Canvas بالحجم المحسوب من cm->px عند DPI (مثال: صفحة 20x30 cm)
+  3. لكل كارت نرسم الصورة بحيث تغطي المساحة (cover) مع الاقتصاص المناسب
+  4. نحول كل Canvas لملف Blob ونعرض معاينة + زر تحميل
+  5. نسمح بتحميل كل الشيتات في ZIP عبر JSZip
+*/
+
+const filesInput = document.getElementById('files');
+const previewArea = document.getElementById('previewArea');
+const sheetArea = document.getElementById('sheetArea');
+const makeBtn = document.getElementById('make');
+const downloadAllBtn = document.getElementById('downloadAll');
+
+function cmToPx(cm, dpi) {
+  return Math.round((cm / 2.54) * dpi);
+}
+
+// تحويل File -> Image object
+function fileToImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(e);
+    };
+    img.src = url;
+  });
+}
+
+// عرض معاينات الصور المرفوعة
+filesInput.addEventListener('change', () => {
+  previewArea.innerHTML = '';
+  const files = Array.from(filesInput.files);
+  files.forEach(f => {
+    const imgEl = document.createElement('img');
+    imgEl.className = 'thumb';
+    imgEl.src = URL.createObjectURL(f);
+    imgEl.onload = () => URL.revokeObjectURL(imgEl.src);
+    previewArea.appendChild(imgEl);
+  });
+});
+
+// دالة لمزج صورة داخل مستطيل (cover)
+function drawImageCover(ctx, img, x, y, w, h) {
+  const sw = img.width, sh = img.height;
+  const swRatio = w / h;
+  const imgRatio = sw / sh;
+
+  let sx, sy, sW, sH;
+  if (imgRatio > swRatio) {
+    // الصورة أعرض من البطاقة → نقطع من اليمين واليسار
+    sH = sh;
+    sW = Math.round(sh * swRatio);
+    sx = Math.round((sw - sW) / 2);
+    sy = 0;
+  } else {
+    // الصورة أطول → نقطع من الأعلى والأسفل
+    sW = sw;
+    sH = Math.round(sw / swRatio);
+    sx = 0;
+    sy = Math.round((sh - sH) / 2);
+  }
+  ctx.drawImage(img, sx, sy, sW, sH, x, y, w, h);
+}
+
+// إنشاء شيتات من قائمة صور (Image objects)
+async function createSheetsFromImages(images, options) {
+  // إعدادات الصفحة والكارت
+  const PAGE_W_CM = 20, PAGE_H_CM = 30; // ثابت كما طلبت
+  const cols = 2, rows = 5; // 10 كروت
+  const DPI = options.dpi;
+  const PAGE_W = cmToPx(PAGE_W_CM, DPI);
+  const PAGE_H = cmToPx(PAGE_H_CM, DPI);
+  const CARD_W = cmToPx(options.cardW, DPI);
+  const CARD_H = cmToPx(options.cardH, DPI);
+
+  // هامش (سم) يمكن تغييره أو حساب تلقائي
+  const margin_px = Math.round(cmToPx(0.8, DPI)); // 0.8 cm margins
+  // spacing بين الكروت (يساوي الفراغ المتبقي مقسوم)
+  const spacingX = cols > 1 ? Math.floor((PAGE_W - 2*margin_px - cols*CARD_W) / (cols - 1)) : 0;
+  const spacingY = rows > 1 ? Math.floor((PAGE_H - 2*margin_px - rows*CARD_H) / (rows - 1)) : 0;
+
+  // safety checks
+  if (CARD_W + 2*margin_px > PAGE_W || CARD_H + 2*margin_px > PAGE_H) {
+    throw new Error('الكارت أكبر من الصفحة. قلل المقاسات أو زود حجم الصفحة.');
+  }
+
+  const perSheet = cols * rows;
+  const sheets = [];
+
+  for (let s = 0; s < Math.ceil(images.length / perSheet); s++) {
+    // أنشئ canvas بالحجم المطلوب
+    const canvas = document.createElement('canvas');
+    canvas.width = PAGE_W;
+    canvas.height = PAGE_H;
+    const ctx = canvas.getContext('2d');
+
+    // خلفية بيضاء
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,canvas.width, canvas.height);
+
+    // رسم كل كارت
+    for (let i = 0; i < perSheet; i++) {
+      const idx = s * perSheet + i;
+      if (idx >= images.length) break;
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      const x = margin_px + col * (CARD_W + spacingX);
+      const y = margin_px + row * (CARD_H + spacingY);
+
+      // حافة للكارت (اختياري)
+      ctx.save();
+      // draw white rounded card background
+      const radius = Math.round(DPI * 0.2); // small radius
+      roundRect(ctx, x, y, CARD_W, CARD_H, radius, '#ffffff', '#dddddd');
+      // draw image inside card with small inner padding
+      const pad = Math.round(DPI * 0.08); // حوالي 0.08cm padding
+      drawImageCover(ctx, images[idx], x + pad, y + pad, CARD_W - 2*pad, CARD_H - 2*pad);
+      ctx.restore();
+    }
+
+    sheets.push(canvas);
+  }
+
+  return sheets;
+}
+
+// مساعدة: رسم مستطيل بزاوية مدورة ولون حدود وخلفية
+function roundRect(ctx, x, y, w, h, r, fillColor, strokeColor) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+  }
+  if (strokeColor) {
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+// تحويل Canvas -> Blob (PNG)
+function canvasToBlob(canvas) {
+  return new Promise(resolve => canvas.toBlob(blob => resolve(blob), 'image/png', 1));
+}
+
+// معالجة الزر "إنشاء"
+makeBtn.addEventListener('click', async () => {
+  const files = Array.from(filesInput.files || []);
+  if (!files.length) {
+    alert('اختر صور أولا');
+    return;
+  }
+
+  makeBtn.disabled = true;
+  downloadAllBtn.disabled = true;
+  sheetArea.innerHTML = '<div class="small">جاري التحويل... انتظر قليلاً.</div>';
+
+  const dpi = parseInt(document.getElementById('dpi').value) || 300;
+  const cardW = parseFloat(document.getElementById('cardW').value) || 9;
+  const cardH = parseFloat(document.getElementById('cardH').value) || 5.5;
+
+  // اقرأ الملفات كصور (Image objects). نحد من الذاكرة بتحميلهم واحداً واحداً
+  const images = [];
+  for (let f of files) {
+    try {
+      const img = await fileToImage(f);
+      images.push(img);
+    } catch (e) {
+      console.warn('خطأ بتحميل صورة:', f.name, e);
+    }
+  }
+
+  try {
+    const sheets = await createSheetsFromImages(images, { dpi, cardW, cardH });
+
+    sheetArea.innerHTML = '';
+    const blobs = [];
+
+    for (let i = 0; i < sheets.length; i++) {
+      const canvas = sheets[i];
+      const blob = await canvasToBlob(canvas);
+      blobs.push(blob);
+
+      // عرض معاينة وتصنيف الزر
+      const url = URL.createObjectURL(blob);
+      const item = document.createElement('div');
+      item.className = 'sheet-item';
+      item.innerHTML = `
+        <div style="flex:1">
+          <div style="font-weight:600; color:#222">الشيت ${i+1}</div>
+          <div class="small">حجم الصفحة: ${canvas.width} × ${canvas.height} px (DPI=${dpi})</div>
+          <div class="small">الكروت في هذا الشيت: ${Math.min(10, Math.max(0, images.length - i*10))}</div>
+          <div style="margin-top:8px">
+            <button class="download-sheet">تحميل شيت ${i+1}</button>
+          </div>
+        </div>
+        <img src="${url}" alt="sheet${i+1}" />
+      `;
+      sheetArea.appendChild(item);
+
+      // زر تحميل فردي
+      item.querySelector('.download-sheet').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sheet_${i+1}.png`;
+        a.click();
+      });
+    }
+
+    // تم إنشاء كل الشيتات → تفعيل زر ZIP
+    downloadAllBtn.disabled = false;
+
+    // زر تحميل ZIP
+    downloadAllBtn.onclick = async () => {
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.textContent = 'جاري إنشاء ZIP...';
+      const zip = new JSZip();
+      for (let i = 0; i < blobs.length; i++) {
+        zip.file(`sheet_${i+1}.png`, blobs[i]);
+      }
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sheets_${Date.now()}.zip`;
+      a.click();
+      downloadAllBtn.textContent = 'تحميل كل الشيتات ZIP';
+      downloadAllBtn.disabled = false;
+    };
+
+  } catch (err) {
+    alert('حدث خطأ عند إنشاء الشيتات: ' + (err.message || err));
+    console.error(err);
+    sheetArea.innerHTML = '';
+  } finally {
+    makeBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
