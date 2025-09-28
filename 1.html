@@ -1,0 +1,28 @@
+```html
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>إعادة توجيه</title>
+  <script>
+    // لما الصفحة تفتح
+    window.onload = function () {
+      // جلب الـ id من الرابط
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+
+      if (id) {
+        // لو فيه id → إعادة توجيه للموقع الأساسي
+        window.location.href = "http://mahmoudsaber.s-auto.online/student/" + id;
+      } else {
+        // لو مفيش id → رسالة
+        document.body.innerHTML = "<h2>⚠️ من فضلك أدخل ID الطالب في الرابط</h2>";
+      }
+    };
+  </script>
+</head>
+<body>
+  <h2>جارٍ تحويلك...</h2>
+</body>
+</html>
+```
