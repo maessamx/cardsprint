@@ -183,7 +183,7 @@ async function createSheetsFromImages(images, options) {
       ctx.save();
       // draw white rounded card background
       const radius = Math.round(DPI * 0.2); // small radius
-      roundRect(ctx, x, y, CARD_W, CARD_H, radius, '#ffffff', '#dddddd');
+      //roundRect(ctx, x, y, CARD_W, CARD_H, radius, '#ffffff', '#dddddd');
       // draw image inside card with small inner padding
       const pad = Math.round(DPI * 0.08); // حوالي 0.08cm padding
       drawImageCover(ctx, images[idx], x + pad, y + pad, CARD_W - 2*pad, CARD_H - 2*pad);
@@ -317,3 +317,4 @@ makeBtn.addEventListener('click', async () => {
 </script>
 </body>
 </html>
+
