@@ -146,7 +146,7 @@ async function createSheetsFromImages(images, options) {
   const CARD_H = cmToPx(options.cardH, DPI);
 
   // هامش (سم) يمكن تغييره أو حساب تلقائي
-  const margin_px = Math.round(cmToPx(0.8, DPI)); // 0.8 cm margins
+  const margin_px = Math.round(cmToPx(0.5, DPI)); // 0.8 cm margins
   // spacing بين الكروت (يساوي الفراغ المتبقي مقسوم)
   const spacingX = cols > 1 ? Math.floor((PAGE_W - 2*margin_px - cols*CARD_W) / (cols - 1)) : 0;
   const spacingY = rows > 1 ? Math.floor((PAGE_H - 2*margin_px - rows*CARD_H) / (rows - 1)) : 0;
@@ -185,7 +185,7 @@ async function createSheetsFromImages(images, options) {
       const radius = Math.round(DPI * 0.2); // small radius
       //roundRect(ctx, x, y, CARD_W, CARD_H, radius, '#ffffff', '#dddddd');
       // draw image inside card with small inner padding
-      const pad = Math.round(DPI * 0.08); // حوالي 0.08cm padding
+      const pad = Math.round(0); // حوالي 0.08cm padding
       drawImageCover(ctx, images[idx], x + pad, y + pad, CARD_W - 2*pad, CARD_H - 2*pad);
       ctx.restore();
     }
@@ -317,4 +317,3 @@ makeBtn.addEventListener('click', async () => {
 </script>
 </body>
 </html>
-
