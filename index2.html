@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Sheet Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        #upload-container {
+            margin-bottom: 20px;
+        }
+        #file-input {
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .preview-img {
+            width: 100px;
+            height: 61px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+        #generate-btn {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #generate-btn:hover {
+            background-color: #218838;
+        }
+        #generate-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        #download-links {
+            margin-top: 20px;
+        }
+        #download-links a {
+            display: block;
+            margin: 5px 0;
+            color: #007bff;
+            text-decoration: none;
+        }
+        #download-links a:hover {
+            text-decoration: underline;
+        }
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="upload-container">
+        <input type="file" id="file-input" accept="image/*" multiple>
+    </div>
+    <div id="preview"></div>
+    <button id="generate-btn" disabled>Generate Sheets</button>
+    <div id="download-links"></div>
+    <canvas id="sheet-canvas"></canvas>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const preview = document.getElementById('preview');
+        const generateBtn = document.getElementById('generate-btn');
+        const downloadLinks = document.getElementById('download-links');
+        const canvas = document.getElementById('sheet-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Constants (matching Python code)
+        const DPI = 300;
+        const PAGE_WIDTH_CM = 20;
+        const PAGE_HEIGHT_CM = 30;
+        const CARD_WIDTH_CM = 9;
+        const CARD_HEIGHT_CM = 5.5;
+        const CARDS_PER_ROW = 2;
+        const ROWS = 5;
+        const MARGIN_X = 50;
+        const MARGIN_Y = 50;
+
+        // Convert cm to pixels
+        function cmToPx(cm, dpi = DPI) {
+            return Math.round((cm / 2.54) * dpi);
+        }
+
+        const PAGE_WIDTH = cmToPx(PAGE_WIDTH_CM);
+        const PAGE_HEIGHT = cmToPx(PAGE_HEIGHT_CM);
+        const CARD_WIDTH = cmToPx(CARD_WIDTH_CM);
+        const CARD_HEIGHT = cmToPx(CARD_HEIGHT_CM);
+        const SPACING_X = (PAGE_WIDTH - 2 * MARGIN_X - CARDS_PER_ROW * CARD_WIDTH) / (CARDS_PER_ROW - 1);
+        const SPACING_Y = (PAGE_HEIGHT - 2 * MARGIN_Y - ROWS * CARD_HEIGHT) / (ROWS - 1);
+
+        let uploadedImages = [];
+
+        // Handle file upload
+        fileInput.addEventListener('change', (e) => {
+            uploadedImages = [];
+            preview.innerHTML = '';
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const img = new Image();
+                    img.src = URL.createObjectURL(file);
+                    img.onload = () => {
+                        uploadedImages.push(img);
+                        const previewImg = document.createElement('img');
+                        previewImg.src = img.src;
+                        previewImg.className = 'preview-img';
+                        preview.appendChild(previewImg);
+                        generateBtn.disabled = uploadedImages.length === 0;
+                    };
+                }
+            });
+        });
+
+        // Generate sheets
+        generateBtn.addEventListener('click', () => {
+            downloadLinks.innerHTML = '';
+            const sheets = Math.ceil(uploadedImages.length / (CARDS_PER_ROW * ROWS));
+
+            for (let i = 0; i < sheets; i++) {
+                canvas.width = PAGE_WIDTH;
+                canvas.height = PAGE_HEIGHT;
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+
+                let idx = i * CARDS_PER_ROW * ROWS;
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < CARDS_PER_ROW; col++) {
+                        if (idx >= uploadedImages.length) break;
+                        const x = MARGIN_X + col * (CARD_WIDTH + SPACING_X);
+                        const y = MARGIN_Y + row * (CARD_HEIGHT + SPACING_Y);
+                        ctx.drawImage(uploadedImages[idx], x, y, CARD_WIDTH, CARD_HEIGHT);
+                        idx++;
+                    }
+                }
+
+                // Create download link
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = `sheet${i + 1}.png`;
+                link.textContent = `Download Sheet ${i + 1}`;
+                downloadLinks.appendChild(link);
+            }
+        });
+    </script>
+</body>
+</html>
