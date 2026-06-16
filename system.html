@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام بيانات المستفيدين</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1F3B5C;
+    --navy-light:#2C5282;
+    --bg:#F1F4F9;
+    --card:#FFFFFF;
+    --border:#E1E7EF;
+    --text:#1A202C;
+    --muted:#64748B;
+    --danger:#C0392B;
+    --gray-dark:#4A4A4A;
+    --bronze:#8C6D1F;
+    --maroon:#7B241C;
+    --teal:#146C7A;
+    --olive:#6B8E23;
+    --success:#1F7A4D;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    direction:rtl;
+    padding:28px 16px 60px;
+    min-height:100vh;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+    margin-bottom:22px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-badge{
+    width:46px;height:46px;border-radius:12px;background:var(--navy);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;
+    flex-shrink:0;
+  }
+  .brand h1{font-size:19px;margin:0;font-weight:800;color:var(--navy);}
+  .brand p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
+  .counter{
+    background:var(--card);border:1px solid var(--border);border-radius:999px;
+    padding:8px 16px;font-size:13px;font-weight:700;color:var(--navy);
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .tbtn{
+    border:1px solid var(--border);background:var(--card);color:var(--text);
+    padding:9px 14px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:6px;transition:.15s;
+  }
+  .tbtn:hover{border-color:var(--navy-light);color:var(--navy-light);}
+  #fileImport{display:none;}
+
+  .card{
+    background:var(--card);border-radius:var(--radius);
+    box-shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+    border:1px solid var(--border);
+    padding:24px;margin-bottom:18px;
+  }
+
+  .search-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .seg{
+    display:flex;background:var(--bg);border-radius:9px;padding:4px;border:1px solid var(--border);
+  }
+  .seg button{
+    border:none;background:transparent;padding:8px 14px;border-radius:7px;font-size:12.5px;
+    font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;
+  }
+  .seg button.active{background:var(--navy);color:#fff;}
+  .search-row input[type="text"]{
+    flex:1;min-width:160px;
+  }
+  input[type="text"], input[type="tel"], input[type="number"], textarea{
+    width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+    font-size:14px;font-family:inherit;color:var(--text);background:#fff;
+    transition:.15s;
+  }
+  input:focus, textarea:focus{outline:none;border-color:var(--navy-light);box-shadow:0 0 0 3px rgba(44,82,130,.12);}
+
+  .btn{
+    border:none;color:#fff;border-radius:9px;padding:10px 16px;font-size:13.5px;
+    font-weight:700;cursor:pointer;font-family:inherit;transition:transform .08s, filter .15s;
+    white-space:nowrap;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{transform:scale(.97);}
+  .btn-navy{background:var(--navy);}
+  .btn-search{background:var(--navy-light);}
+
+  .status-chip{
+    display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
+    padding:8px 14px;border-radius:9px;margin-bottom:16px;
+  }
+  .chip-new{background:#EAF4EC;color:var(--success);}
+  .chip-edit{background:#FDF1E0;color:var(--bronze);}
+
+  .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px;margin-top:6px;}
+  @media (max-width:640px){.fields-grid{grid-template-columns:1fr;}}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+  .field textarea{resize:vertical;min-height:40px;}
+
+  .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;}
+  .actions-row .btn{flex:1;min-width:90px;}
+  .btn-print{background:var(--danger);}
+  .btn-delete{background:var(--gray-dark);}
+  .btn-edit{background:var(--bronze);}
+  .btn-inquiry{background:var(--maroon);}
+  .btn-save{background:var(--teal);}
+  .btn-close{background:var(--olive);width:100%;margin-top:12px;padding:13px;font-size:14.5px;}
+
+  .table-toggle{
+    display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  }
+  .table-toggle h2{font-size:15px;margin:0;color:var(--navy);}
+  .table-toggle span{font-size:13px;color:var(--muted);font-weight:600;}
+  .table-search{margin:14px 0;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--border);}
+  th{background:var(--bg);color:var(--navy);font-weight:700;font-size:12.5px;}
+  tr:hover td{background:#FAFBFD;}
+  .row-actions{display:flex;gap:6px;}
+  .mini{padding:5px 10px;font-size:11.5px;border-radius:6px;}
+  .empty-state{text-align:center;color:var(--muted);padding:30px 10px;font-size:13.5px;}
+
+  .toast-wrap{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:8px;z-index:999;align-items:center;
+  }
+  .toast{
+    background:var(--navy);color:#fff;padding:11px 20px;border-radius:9px;font-size:13.5px;
+    font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transform:translateY(10px);
+    transition:.25s;
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.err{background:var(--danger);}
+  .toast.ok{background:var(--success);}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;
+    align-items:center;justify-content:center;z-index:1000;padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:#fff;border-radius:var(--radius);padding:24px;max-width:380px;width:100%;
+    box-shadow:0 10px 40px rgba(0,0,0,.2);
+  }
+  .modal-box p{font-size:14.5px;line-height:1.7;margin:0 0 18px;color:var(--text);}
+  .modal-actions{display:flex;gap:10px;}
+  .modal-actions .btn{flex:1;}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;line-height:1.8;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{position:absolute;top:0;right:0;left:0;padding:20px;}
+  }
+  #printArea{display:none;}
+  #printArea h2{color:var(--navy);}
+  #printArea table{width:100%;border-collapse:collapse;}
+  #printArea th,#printArea td{border:1px solid #999;padding:6px 8px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge">م</div>
+      <div>
+        <h1>نظام بيانات المستفيدين</h1>
+        <p>البيانات محفوظة في الذاكرة فقط — صدّرها كملف JSON قبل إغلاق الصفحة</p>
+      </div>
+    </div>
+    <div class="counter" id="counterBadge">0 سجل</div>
+  </div>
+
+  <div class="toolbar">
+    <button class="tbtn" id="btnImport">📂 استيراد بيانات (JSON)</button>
+    <input type="file" id="fileImport" accept="application/json">
+    <button class="tbtn" id="btnExportJson">💾 تصدير JSON</button>
+    <button class="tbtn" id="btnExportCsv">📊 تصدير لإكسل (CSV)</button>
+  </div>
+
+  <div class="card">
+    <div class="search-row">
+      <div class="seg">
+        <button id="modeId" class="active">رقم البطاقة / القومي</button>
+        <button id="modePhone">رقم الهاتف</button>
+      </div>
+      <input type="text" id="txtSearch" placeholder="ادخل الرقم للبحث...">
+      <button class="btn btn-search" id="btnSearch">بحث بالرقم</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="statusChip" class="status-chip chip-new">📝 سجل جديد</div>
+
+    <div class="fields-grid">
+      <div class="field"><label>الاسم</label><input type="text" id="txtName"></div>
+      <div class="field"><label>العنوان</label><input type="text" id="txtAddress"></div>
+
+      <div class="field"><label>رقم التلفون</label><input type="tel" id="txtPhone"></div>
+      <div class="field"><label>عدد الأولاد</label><input type="number" id="txtChildren" min="0"></div>
+
+      <div class="field"><label>الحالة</label><input type="text" id="txtStatus" placeholder="متزوج / أعزب / مطلق..."></div>
+      <div class="field"><label>رقم تلفون اخر</label><input type="tel" id="txtOtherPhone"></div>
+
+      <div class="field"><label>رقم البطاقة</label><input type="tel" id="txtCard"></div>
+      <div class="field"><label>الملاحظات</label><textarea id="txtNotes" rows="1"></textarea></div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn btn-print" id="btnPrint">طباعة</button>
+      <button class="btn btn-delete" id="btnDelete">حذف</button>
+      <button class="btn btn-edit" id="btnEdit">تعديل</button>
+      <button class="btn btn-inquiry" id="btnInquiry">استعلام</button>
+      <button class="btn btn-save" id="btnSave">حفظ البيانات</button>
+    </div>
+    <button class="btn btn-close" id="btnSaveClose">حفظ وإغلاق الملف</button>
+  </div>
+
+  <div class="card">
+    <div class="table-toggle" id="tableToggle">
+      <h2>كل السجلات</h2>
+      <span id="toggleLabel">عرض ▾</span>
+    </div>
+    <div id="tableSection" style="display:none;">
+      <input type="text" class="table-search" id="txtFilter" placeholder="فلترة بالاسم أو الرقم...">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>الاسم</th><th>التلفون</th><th>الحالة</th><th>رقم البطاقة</th><th></th></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="emptyState">لا توجد سجلات بعد — أضف سجلًا جديدًا أو استورد ملف JSON.</div>
+    </div>
+  </div>
+
+  <footer>كل البيانات تُحفظ داخل هذه الصفحة فقط أثناء الاستخدام، ولا تُرسل لأي خادم خارجي.<br>استخدم "تصدير JSON" بشكل دوري لحفظ نسخة دائمة على جهازك.</footer>
+</div>
+
+<div id="printArea">
+  <h2>تقرير بيانات المستفيدين</h2>
+  <table id="printTable"></table>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <p id="modalMsg"></p>
+    <div class="modal-actions">
+      <button class="btn btn-delete" id="modalNo">إلغاء</button>
+      <button class="btn btn-save" id="modalYes">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var records = [];
+  var currentEditId = null;
+  var isDirty = false;
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  var fields = {
+    name: $('txtName'), phone: $('txtPhone'), status: $('txtStatus'), card: $('txtCard'),
+    address: $('txtAddress'), children: $('txtChildren'), otherPhone: $('txtOtherPhone'), notes: $('txtNotes')
+  };
+
+  var searchMode = 'card'; // 'card' or 'phone'
+  $('modeId').addEventListener('click', function(){ setMode('card'); });
+  $('modePhone').addEventListener('click', function(){ setMode('phone'); });
+  function setMode(m){
+    searchMode = m;
+    $('modeId').classList.toggle('active', m === 'card');
+    $('modePhone').classList.toggle('active', m === 'phone');
+  }
+
+  function genId(){ return 'r_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
+
+  function getFormData(){
+    return {
+      name: fields.name.value.trim(),
+      phone: fields.phone.value.trim(),
+      status: fields.status.value.trim(),
+      card: fields.card.value.trim(),
+      address: fields.address.value.trim(),
+      children: fields.children.value.trim(),
+      otherPhone: fields.otherPhone.value.trim(),
+      notes: fields.notes.value.trim()
+    };
+  }
+
+  function setFormData(r){
+    fields.name.value = r.name || '';
+    fields.phone.value = r.phone || '';
+    fields.status.value = r.status || '';
+    fields.card.value = r.card || '';
+    fields.address.value = r.address || '';
+    fields.children.value = r.children || '';
+    fields.otherPhone.value = r.otherPhone || '';
+    fields.notes.value = r.notes || '';
+  }
+
+  function clearForm(){
+    Object.keys(fields).forEach(function(k){ fields[k].value = ''; });
+    $('txtSearch').value = '';
+    currentEditId = null;
+    updateStatusChip();
+  }
+
+  function updateStatusChip(){
+    var chip = $('statusChip');
+    if(currentEditId){
+      var rec = records.find(function(r){ return r.id === currentEditId; });
+      chip.className = 'status-chip chip-edit';
+      chip.textContent = '✏️ تعديل سجل: ' + (rec ? rec.name : '');
+    } else {
+      chip.className = 'status-chip chip-new';
+      chip.textContent = '📝 سجل جديد';
+    }
+  }
+
+  function updateCounter(){
+    $('counterBadge').textContent = records.length + ' سجل';
+  }
+
+  function markDirty(){ isDirty = true; }
+
+  function findByColumn(col, value){
+    value = String(value).trim();
+    if(value === '') return null;
+    return records.find(function(r){ return String(r[col]||'').trim() === value; }) || null;
+  }
+
+  // ---------- Toast ----------
+  function toast(msg, type){
+    var t = document.createElement('div');
+    t.className = 'toast' + (type ? ' ' + type : '');
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    requestAnimationFrame(function(){ t.classList.add('show'); });
+    setTimeout(function(){
+      t.classList.remove('show');
+      setTimeout(function(){ t.remove(); }, 250);
+    }, 2600);
+  }
+
+  // ---------- Confirm modal ----------
+  function showConfirm(msg, onYes){
+    $('modalMsg').textContent = msg;
+    $('modalOverlay').classList.add('show');
+    function cleanup(){
+      $('modalOverlay').classList.remove('show');
+      $('modalYes').removeEventListener('click', yesHandler);
+      $('modalNo').removeEventListener('click', noHandler);
+    }
+    function yesHandler(){ cleanup(); onYes(); }
+    function noHandler(){ cleanup(); }
+    $('modalYes').addEventListener('click', yesHandler);
+    $('modalNo').addEventListener('click', noHandler);
+  }
+
+  // ---------- Search / Inquiry ----------
+  function doSearch(){
+    var val = $('txtSearch').value.trim();
+    if(!val){ toast('من فضلك ادخل رقم البحث', 'err'); return; }
+    var col = searchMode === 'card' ? 'card' : 'phone';
+    var rec = findByColumn(col, val);
+    if(!rec){
+      toast('لم يتم العثور على نتائج', 'err');
+      clearForm();
+    } else {
+      setFormData(rec);
+      currentEditId = rec.id;
+      updateStatusChip();
+      toast('تم العثور على السجل بنجاح', 'ok');
+    }
+  }
+
+  function doInquiry(){
+    var val = $('txtSearch').value.trim();
+    if(!val){ toast('من فضلك ادخل رقم البحث', 'err'); return; }
+    var col = searchMode === 'card' ? 'card' : 'phone';
+    var rec = findByColumn(col, val);
+    if(!rec){ toast('لا يوجد سجل بهذا الرقم', 'err'); return; }
+    setFormData(rec);
+    currentEditId = rec.id;
+    updateStatusChip();
+    showConfirm(
+      'الاسم: ' + rec.name + '\nرقم التلفون: ' + rec.phone + '\nالحالة: ' + rec.status +
+      '\nرقم البطاقة: ' + rec.card + '\nالعنوان: ' + rec.address + '\nعدد الأولاد: ' + rec.children +
+      '\nرقم تلفون اخر: ' + rec.otherPhone + '\nالملاحظات: ' + rec.notes,
+      function(){}
+    );
+    $('modalYes').textContent = 'حسنًا';
+    $('modalNo').style.display = 'none';
+    setTimeout(function(){ $('modalYes').textContent = 'تأكيد'; $('modalNo').style.display = ''; }, 50);
+  }
+
+  // ---------- Save ----------
+  function doSave(){
+    var data = getFormData();
+    if(!data.name){ toast('من فضلك ادخل الاسم', 'err'); return; }
+
+    if(data.card){
+      var dupCard = findByColumn('card', data.card);
+      if(dupCard){ toast('هذا المستفيد مسجل بالفعل', 'err'); return; }
+    }
+
+    function finalizeSave(){
+      var rec = data;
+      rec.id = genId();
+      rec.createdAt = new Date().toISOString();
+      records.push(rec);
+      markDirty();
+      renderTable();
+      updateCounter();
+      toast('تم حفظ البيانات بنجاح', 'ok');
+      clearForm();
+    }
+
+    if(data.phone){
+      var dupPhone = findByColumn('phone', data.phone);
+      if(dupPhone){
+        showConfirm('يوجد سجل بنفس رقم الهاتف\nهل تريد الحفظ على أي حال؟', finalizeSave);
+        return;
+      }
+    }
+    finalizeSave();
+  }
+
+  // ---------- Edit ----------
+  function doEdit(){
+    if(!currentEditId){ toast('من فضلك قم بالبحث عن السجل أولاً قبل التعديل', 'err'); return; }
+    var data = getFormData();
+    if(!data.name){ toast('من فضلك ادخل الاسم', 'err'); return; }
+
+    if(data.card){
+      var dup = findByColumn('card', data.card);
+      if(dup && dup.id !== currentEditId){ toast('هذا الرقم مستخدم في سجل آخر بالفعل', 'err'); return; }
+    }
+
+    var idx = records.findIndex(function(r){ return r.id === currentEditId; });
+    if(idx === -1){ toast('السجل غير موجود', 'err'); return; }
+    data.id = currentEditId;
+    data.createdAt = records[idx].createdAt;
+    data.updatedAt = new Date().toISOString();
+    records[idx] = data;
+    markDirty();
+    renderTable();
+    updateStatusChip();
+    toast('تم تعديل السجل بنجاح', 'ok');
+  }
+
+  // ---------- Delete ----------
+  function doDelete(){
+    if(!currentEditId){ toast('من فضلك قم بالبحث عن السجل أولاً قبل الحذف', 'err'); return; }
+    showConfirm('هل أنت متأكد من حذف هذا السجل؟', function(){
+      records = records.filter(function(r){ return r.id !== currentEditId; });
+      markDirty();
+      renderTable();
+      updateCounter();
+      toast('تم حذف السجل', 'ok');
+      clearForm();
+    });
+  }
+
+  function deleteById(id){
+    showConfirm('هل أنت متأكد من حذف هذا السجل؟', function(){
+      records = records.filter(function(r){ return r.id !== id; });
+      if(currentEditId === id) clearForm();
+      markDirty();
+      renderTable();
+      updateCounter();
+      toast('تم حذف السجل', 'ok');
+    });
+  }
+
+  function loadById(id){
+    var rec = records.find(function(r){ return r.id === id; });
+    if(!rec) return;
+    setFormData(rec);
+    currentEditId = id;
+    updateStatusChip();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  // ---------- Print ----------
+  function doPrint(){
+    var rows = records.map(function(r){
+      return '<tr><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td>' + esc(r.status) +
+        '</td><td>' + esc(r.card) + '</td><td>' + esc(r.address) + '</td><td>' + esc(r.children) +
+        '</td><td>' + esc(r.otherPhone) + '</td><td>' + esc(r.notes) + '</td></tr>';
+    }).join('');
+    $('printTable').innerHTML =
+      '<thead><tr><th>الاسم</th><th>التلفون</th><th>الحالة</th><th>رقم البطاقة</th><th>العنوان</th><th>عدد الأولاد</th><th>تلفون آخر</th><th>الملاحظات</th></tr></thead><tbody>' +
+      rows + '</tbody>';
+    $('printArea').style.display = 'block';
+    window.print();
+    setTimeout(function(){ $('printArea').style.display = 'none'; }, 300);
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+
+  // ---------- Save & Close ----------
+  function doSaveAndClose(){
+    exportJSON();
+    toast('تم تصدير البيانات، يمكنك إغلاق الصفحة الآن', 'ok');
+    isDirty = false;
+    setTimeout(function(){
+      window.close();
+    }, 600);
+  }
+
+  // ---------- Export / Import ----------
+  function download(filename, content, mime){
+    var blob = new Blob([content], {type: mime});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+  }
+
+  function exportJSON(){
+    download('بيانات_المستفيدين.json', JSON.stringify(records, null, 2), 'application/json');
+    isDirty = false;
+    toast('تم تصدير ملف JSON بنجاح', 'ok');
+  }
+
+  function exportCSV(){
+    var headers = ['الاسم','رقم التلفون','الحالة','رقم البطاقة','العنوان','عدد الأولاد','رقم تلفون اخر','الملاحظات'];
+    var lines = [headers.join(',')];
+    records.forEach(function(r){
+      var row = [r.name,r.phone,r.status,r.card,r.address,r.children,r.otherPhone,r.notes].map(function(v){
+        v = String(v == null ? '' : v).replace(/"/g,'""');
+        return '"' + v + '"';
+      });
+      lines.push(row.join(','));
+    });
+    download('بيانات_المستفيدين.csv', '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8;');
+    toast('تم تصدير ملف CSV بنجاح', 'ok');
+  }
+
+  function importJSON(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var data = JSON.parse(e.target.result);
+        if(!Array.isArray(data)) throw new Error('bad format');
+        records = data.map(function(r){
+          if(!r.id) r.id = genId();
+          return r;
+        });
+        renderTable();
+        updateCounter();
+        isDirty = false;
+        toast('تم استيراد ' + records.length + ' سجل بنجاح', 'ok');
+      }catch(err){
+        toast('ملف JSON غير صالح', 'err');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // ---------- Table ----------
+  function renderTable(){
+    var q = $('txtFilter').value.trim().toLowerCase();
+    var list = records.filter(function(r){
+      if(!q) return true;
+      return (r.name||'').toLowerCase().indexOf(q) > -1 ||
+             (r.phone||'').indexOf(q) > -1 ||
+             (r.card||'').indexOf(q) > -1;
+    });
+    var body = $('tableBody');
+    body.innerHTML = '';
+    $('emptyState').style.display = list.length ? 'none' : 'block';
+    list.forEach(function(r){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.card) + '</td>' +
+        '<td><div class="row-actions">' +
+        '<button class="btn btn-edit mini" data-act="load" data-id="' + r.id + '">تحميل</button>' +
+        '<button class="btn btn-delete mini" data-act="del" data-id="' + r.id + '">حذف</button>' +
+        '</div></td>';
+      body.appendChild(tr);
+    });
+  }
+
+  $('tableBody').addEventListener('click', function(e){
+    var btn = e.target.closest('button');
+    if(!btn) return;
+    var id = btn.getAttribute('data-id');
+    if(btn.getAttribute('data-act') === 'load') loadById(id);
+    if(btn.getAttribute('data-act') === 'del') deleteById(id);
+  });
+
+  $('txtFilter').addEventListener('input', renderTable);
+
+  $('tableToggle').addEventListener('click', function(){
+    var sec = $('tableSection');
+    var open = sec.style.display !== 'none';
+    sec.style.display = open ? 'none' : 'block';
+    $('toggleLabel').textContent = open ? 'عرض ▾' : 'إخفاء ▴';
+  });
+
+  // ---------- Wiring ----------
+  $('btnSearch').addEventListener('click', doSearch);
+  $('btnInquiry').addEventListener('click', doInquiry);
+  $('btnSave').addEventListener('click', doSave);
+  $('btnEdit').addEventListener('click', doEdit);
+  $('btnDelete').addEventListener('click', doDelete);
+  $('btnPrint').addEventListener('click', doPrint);
+  $('btnSaveClose').addEventListener('click', doSaveAndClose);
+
+  $('btnExportJson').addEventListener('click', exportJSON);
+  $('btnExportCsv').addEventListener('click', exportCSV);
+  $('btnImport').addEventListener('click', function(){ $('fileImport').click(); });
+  $('fileImport').addEventListener('change', function(e){
+    if(e.target.files && e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  window.addEventListener('beforeunload', function(e){
+    if(isDirty){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  updateCounter();
+  renderTable();
+})();
+</script>
+</body>
+</html>
